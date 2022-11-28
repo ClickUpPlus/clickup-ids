@@ -19,7 +19,7 @@ const deriveKey = (passwordKey: CryptoKey, salt: Uint8Array, keyUsage: string[])
         {
             name: "PBKDF2",
             salt: salt,
-            iterations: 250000,
+            iterations: 100000,
             hash: "SHA-256",
         },
         passwordKey,
