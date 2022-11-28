@@ -7,10 +7,11 @@
  *
  * Learn more at https://developers.cloudflare.com/workers/
  */
-import {noAuth} from "./no-auth";
+import {buildCards, noAuth} from "./views";
 import {handleAuth} from "./callback";
 import {ClickUp} from "./clickup";
 import {decrypt, encrypt } from "./crypto";
+import {layout} from "./layout";
 
 export interface Env {
     CLICKUP_CLIENT_ID: string;
@@ -43,8 +44,54 @@ export default {
 
                 // get self
                 const api = new ClickUp(key);
-                const self = await api.getSelf();
-                return new Response(`Hello ${self['user']['username']}!`);
+
+                // let's get all the info!!!
+                // Parse out the params we have
+                const params = new URL(request.url).searchParams;
+                // If no workspace, get all workspaces
+                let data: any[] = [];
+                let showing = "";
+                if (!params.has("workspace")) {
+                    data = (await api.getWorkspaces())['teams'];
+                    showing = "workspace";
+                } else if (!params.has("space")) {
+                    data = (await api.getSpaces(params.get("workspace")!))['spaces'];
+                    showing = "space";
+                } else if (!params.has("list")) {
+                    data = (await api.getLists(params.get("space")!))['lists'];
+                    showing = "list";
+                } else {
+                    data = (await api.getTasks(params.get("list")!))['tasks'];
+                    showing = "task";
+                }
+
+                let upUrl = "";
+                // build the up url, which is all params minus the last one
+                for (const [key, value] of params) {
+                    if (key !== showing) {
+                        upUrl += `&${key}=${value}`;
+                    }
+                }
+                console.log(upUrl);
+                // remove the last & and everything after it
+                upUrl = upUrl.replace(/&[^&]+$/, "");
+                console.log("With & removed: " + upUrl);
+                // replace first & with ?
+                upUrl = upUrl.replace("&", "?");
+                console.log("With ? added: " + upUrl);
+                // if upUrl is blank, set it to /
+                if (upUrl === "") {
+                    upUrl = "/";
+                }
+
+                const cards = buildCards(data, showing, params);
+                const show = `<h2>Showing ${showing}s</h2><a href="${upUrl}">Go Up</a>${cards}`;
+
+                return new Response(layout(show), {
+                    headers: {
+                        "Content-Type": "text/html",
+                    }
+                });
             }
             case "/callback": {
                 // Handle callback
