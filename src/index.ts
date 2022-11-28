@@ -40,8 +40,6 @@ export default {
 
                 const key = await decrypt(auth, env.CLICKUP_CLIENT_SECRET);
 
-                console.log(key);
-
                 // get self
                 const api = new ClickUp(key);
 
@@ -72,13 +70,10 @@ export default {
                         upUrl += `&${key}=${value}`;
                     }
                 }
-                console.log(upUrl);
                 // remove the last & and everything after it
                 upUrl = upUrl.replace(/&[^&]+$/, "");
-                console.log("With & removed: " + upUrl);
                 // replace first & with ?
                 upUrl = upUrl.replace("&", "?");
-                console.log("With ? added: " + upUrl);
                 // if upUrl is blank, set it to /
                 if (upUrl === "") {
                     upUrl = "/";
@@ -108,7 +103,7 @@ export default {
                 // If successful, add auth cookie, and redirect to /
                 return new Response("Success!", {
                     headers: {
-                        "Set-Cookie": `token=${token} Max-Age=86400; Path=/;`,
+                        "Set-Cookie": `token=${token}; Max-Age=86400; Path=/;`,
                         "Location": "/",
                     },
                     status: 302,
